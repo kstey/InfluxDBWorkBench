@@ -2,6 +2,8 @@ package com.entropiadevelopments.influxdbworkbench.gui.components.actionpanels;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -15,14 +17,56 @@ import org.influxdb.dto.QueryResult.Series;
 
 import com.entropiadevelopments.influxdbworkbench.gui.common.EnhancedTable;
 import com.entropiadevelopments.influxdbworkbench.gui.common.TableRecord;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 public class QueryResultTable extends EnhancedTable {
 
 	private static final long serialVersionUID = 1L;
 	private QueryResultTableModel tableModel;
 	private int numOfrows;
-
-	public QueryResultTable(Series serie) {
+	JQueryResultCellPreviewerDialog instance;
+	public QueryResultTable(final Series serie) 
+	{
+		addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentHidden(ComponentEvent e) 
+			{
+				if( instance !=null )
+				{
+					instance.setVisible(false);
+					instance = null;
+				}
+			}
+		});
+		addMouseListener(new MouseAdapter() 
+		{
+			@Override
+			public void mouseClicked(MouseEvent e) 
+			{
+				if( e.getClickCount() >=2 )
+				{
+					int rowIndex = QueryResultTable.this.rowAtPoint( e.getPoint() );
+			        int columnIndex = QueryResultTable.this.columnAtPoint( e.getPoint() );
+			        if( columnIndex ==0 )
+			        {
+			        		//do not preview the Row number
+			        		return;
+			        }
+			        
+					if( instance ==null )
+					{
+						instance = new JQueryResultCellPreviewerDialog();
+					}
+					instance.setVisible(true);
+					
+			        String hash_number = ""+tableModel.getValueAt(rowIndex, 0);
+			        String value = ""+tableModel.getValueAt(rowIndex, columnIndex);
+			        String column = "Row #"+hash_number+": "+serie.getColumns().get(columnIndex-1); 
+			        instance.setPreview(column, value);
+				}
+			}
+		});
 		setUpUI();
 		numOfrows = 1;
 		ArrayList<String> columNames = new ArrayList<String>(serie.getColumns());
